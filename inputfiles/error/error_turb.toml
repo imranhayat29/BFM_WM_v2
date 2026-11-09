@@ -10,13 +10,15 @@
 # the statistics are saved as assets/error_norm_stats.json (legacy format read by the exporters and CharLES tools).
 
 [general]
-# Output directory name under SaveDir (required). 'gf' marks the models trained with these settings on the
-# global-frame training data: n1/delta windows [0.0025, 0.15] (turbulent) / [0.0025, 0.99] (laminar), no
-# Transition_transition among the additional datasets, Seed 2345, SmoothEpochs 200.
+# Output directory name under SaveDir (required). 'u2f_cons_d0p0025' marks the models trained on the u2-positive-frame
+# data with the consolidated A-airfoil sets and the n1/delta windows [0.0025, 0.15] (turbulent) / [0.0025, 0.99]
+# (laminar); 'u2f_cons' the same with downy 0.005.
+# The default u2f model of the test scripts, error_model_turb_u2f, was trained by this TOML with the u2f baseline,
+# downy 0 and Transition_transition among the additional datasets.
 # Reference model (./models/error/, read-only), for comparison:
 #   error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811
 #   ('ep3811' = best validation epoch of a 10000-epoch run, restored at the end of training)
-ModelName = "error_model_turb_gf"
+ModelName = "error_model_turb_u2f_cons_d0p0025"
 SaveDir   = "./models/error"   # directory receiving <ModelName>/ (SavedModel + assets/) and checkpoints/<ModelName>/ (snapshots)
 Save      = true         # false: train and write diagnostics only
 Overwrite = false        # true: replace an existing <SaveDir>/<ModelName> and its snapshots
@@ -26,9 +28,8 @@ Seed      = 2345         # seeds the splits, weight initialisation and shuffling
 [baseline]
 # Baseline wall-model checkpoint (path relative to ./models, e.g. baseline/<file>.pth, or any path; required); must equal the SNGP TOML's when both
 # are trained together.
-# The reference turbulent baseline; set this to the best-validation checkpoint of the gf baseline
-# (baseline/baseline_turb.toml -> models/baseline/gf/) once it is trained
-Checkpoint = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
+# The u2f turbulent baseline (also used by u2f_cons_d0p0025: the same settings) (reference: baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth)
+Checkpoint = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
 
 [data]
 # Additional datasets added to the error-model training data. [] = none. The list below is the external-flow

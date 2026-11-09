@@ -120,10 +120,13 @@ upstream's data:
 |---|---|---|
 | `FS_ZPG_data.h5`, `FS_APG_data.h5`, `FS_FPG_data.h5` | replaced by larger Falkner-Skan sets (about 5x more points) | used by both reference baselines (laminar and turbulent), hence also part of the turbulent SNGP and error-model training data |
 | `curved_TBL_APG_data.h5`, `curved_TBL_FPG_data.h5` | replaced (same numbers, case names `curved_BL_APG`/`curved_BL_FPG` instead of `curved_BL`) | the SNGP needs the two classes to be distinct |
-| `aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_{ZPG,APG,FPG}.h5` | added | additional training data of the laminar SNGP (n1/δ 0.02-0.8, with a `kt_km` column) |
-| `aairfoil_2M_full2Dfield_down0p005_up1_laminar_{ZPG,APG,FPG}.h5` | added | additional training data of the laminar error model (n1/δ 0.005-1, with a `kt_km` column) |
-| `aairfoil_2M_full2Dfield_down0_up1.h5` | added | test set of `test_lamturb.py`: full 2D-field extraction of the A-airfoil at Re = 2M (wall-normal profiles from the leading to the trailing edge, with a `kt_km` column) |
+| `aairfoil_2M_full2Dfield_down0_up1_laminar_{ZPG,APG,FPG}.h5` | added | laminar region (x/c ≤ 0.123) of the full 2D-field extraction of the A-airfoil at Re = 2M, in pressure-gradient zones: additional training data of the laminar SNGP and error model, and part of the test set of `test_lamturb.py` |
+| `aairfoil_2M_full2Dfield_down0_up1_turbulent.h5` | added | turbulent region (x/c > 0.123) of the same field: the rest of the test set of `test_lamturb.py` |
 
+- **A-airfoil full 2D field.** Wall-normal profiles at every suction-side grid station from the leading to the
+  trailing edge, n1/δ from 0 to 1, with a `kt_km` column (the input of the $k_t/k_m$ sensor). The zone of a laminar
+  point follows $u_p n_1/\nu$: FPG below −0.2, ZPG from −0.2 to 0.2, APG above 0.2. The four files are written by
+  the A-airfoil scripts of the data generation repository (`airfoil_Tamaki/`).
 - **Dataset lookup.** The TOMLs name datasets by key. A key is resolved to a file in this order: an explicit
   path in the TOML's `[data.Files]` table, `./data/<key>_data.h5`, then the entry in `wall_model_cases.py`.
 - `wall_model_cases.py` also registers keys whose files are not included (the comment at the top of the file
@@ -487,27 +490,46 @@ the frame in which CharLES BFMv2 gives the networks their inputs (`u2f` in the n
 | `error/error_model_lam_u2f` | laminar error model |
 
 - The laminar branch combines them with the reference laminar baseline, which was not retrained.
-- Their training settings are recorded in their metadata; docs/DEVELOPMENT.md, section 13, lists them.
+- Their recipes are those of the training TOMLs (below) with the differences listed there; Seed 2345.
 
-### gf models (the training TOMLs)
+### u2f_cons models (the training TOMLs)
 
-The training TOMLs train the `*_gf` models on the training data in `data/` (the datasets' global-x frame). They have
-not been trained yet; the test TOMLs use the reference models. They differ from the reference recipes in:
+The training TOMLs train the `*_u2f_cons_d0p0025` models (`u2f_cons`: u2-positive frame, consolidated A-airfoil data;
+`d0p0025`: lower n1/δ bound 0.0025). They differ from the u2f recipes in:
 
 - **Windows.** One n1/δ window per branch for every model: [0.0025, 0.15] for the turbulent baseline, SNGP and error
-  model (reference: the additional data of the SNGP and error model from the wall, [0, 0.15]), and [0.0025, 0.99] for
-  the laminar ones (reference: the laminar baseline saw every Falkner-Skan point, n1/δ up to 1.25, and the additional
-  data of the laminar SNGP and error model were not cut). The loaders treat `upy` ≥ 1 as no upper cut, hence 0.99.
+  model (u2f: baseline [0.0025, 0.15], additional data of the SNGP and error model [0, 0.15]), and [0.0025, 0.99] for
+  the laminar ones (u2f: the reference laminar baseline saw every Falkner-Skan point, n1/δ up to 1.25; the A-airfoil
+  data of the laminar SNGP and error model were cut to [0.02, 0.8] and [0.005, 1] in their files). The loaders treat
+  `upy` ≥ 1 as no upper cut, hence 0.99.
+- **Laminar A-airfoil data.** Both laminar models add the pressure-gradient zones of the laminar region of the
+  A-airfoil full 2D field (`aairfoil_2M_full2Dfield_down0_up1_laminar_*`; see [Data](#data)).
 - **Additional turbulent data.** The transitional boundary layer `Transition_transition` is no longer added to the
-  turbulent SNGP and error model (11 datasets instead of 12).
-- **Seed and epoch selection.** `Seed = 2345`, and the error models keep the epoch with the lowest 200-epoch moving
-  average of the validation loss (`SmoothEpochs = 200`).
-- **Baselines.** `baseline/baseline_turb.toml` and `baseline/baseline_lam.toml` save to `models/baseline/gf/` and
-  `models/baseline/gf_lam/`. Until these are trained, the SNGP and error TOMLs use the reference baselines; then set
-  their `[baseline] Checkpoint` (per branch) to the best-validation checkpoints of the gf baselines.
+  turbulent SNGP and error model (11 datasets instead of 12); the station-based `aairfoil_2M` set stays.
+- **Laminar baseline.** Retrained (`baseline/baseline_lam.toml`, Seed 2345) instead of the reference one.
 
-Training stops before it starts if the model exists, so set a new `ModelName` (or `Overwrite = true`) to train another
-one. To test the gf models, set the `[models]` tables of the test TOMLs to them.
+The turbulent baseline is the u2f one: `baseline/baseline_turb.toml` is its recipe. The `*_u2f_cons` models were
+trained with the same TOMLs and `downy = 0.005` everywhere, including a retrained turbulent baseline.
+
+| Model (in `models/`) | Role | Recipe |
+|---|---|---|
+| `baseline/u2f/…` (u2f) | turbulent baseline (best validation epoch of 800000) | `baseline/baseline_turb.toml` |
+| `baseline/u2f_cons_d0p0025_lam/…` | laminar baseline (best validation epoch of 30000) | `baseline/baseline_lam.toml` |
+| `sngp/sngp_model_lamturb_turb_u2f_cons_d0p0025` | turbulent SNGP (4000 epochs) | `sngp/sngp_lamturb.toml` `[turb]` |
+| `error/error_model_lamturb_turb_u2f_cons_d0p0025` | turbulent error model (both variants) | `error/error_lamturb.toml` `[turb]` |
+| `sngp/sngp_model_lam_u2f_cons_d0p0025` | laminar SNGP | `sngp/sngp_lamturb.toml` `[lam]` |
+| `error/error_model_lam_u2f_cons_d0p0025` | laminar error model | `error/error_lamturb.toml` `[lam]` |
+| `baseline/u2f_cons/…`, `baseline/u2f_cons_lam/…`, `*_u2f_cons` | the u2f_cons models (`downy = 0.005`) | the same TOMLs with `downy = 0.005` |
+
+- The SNGP and error TOMLs use the best-validation checkpoints of the two baselines.
+- The training TOMLs use `Seed = 2345`, and the error models keep the epoch with the lowest 200-epoch moving
+  average of the validation loss (`SmoothEpochs = 200`).
+- Training stops before it starts if the model exists, so set a new `ModelName` (or `Overwrite = true`) to train
+  another one.
+- `sngp/sngp_turb.toml` (`sngp_model_turb_u2f_cons_d0p0025`, 5000 epochs) and `error/error_turb.toml`
+  (`error_model_turb_u2f_cons_d0p0025`, the recipe and seed of the `[turb]` branch of `error/error_lamturb.toml`)
+  have not been trained.
+- To test them, set the `[models]` tables of the test TOMLs to these models.
 
 ### Reference models (git-lfs)
 
@@ -516,8 +538,8 @@ were trained on the training data in the datasets' global-x frame and are the mo
 
 | Model (in `models/`) | Role | Used by default in | In CharLES BFMv2 |
 |---|---|---|---|
-| `baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth` | turbulent baseline (both variants) | all training TOMLs (turbulent) | yes |
-| `baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth` | laminar baseline | lam-turb training TOMLs (`[lam]`), `test_lamturb.toml` | yes |
+| `baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth` | turbulent baseline (both variants) | none | yes |
+| `baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth` | laminar baseline | `test_lamturb.toml` | yes |
 | `sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged` | turbulent SNGP (4000 epochs) | none | yes |
 | `sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep5000_merged` | alternative turbulent SNGP (5000 epochs) | none | no |
 | `sngp/sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY0p8_ep20000_merged` | laminar SNGP | none | yes |
@@ -527,21 +549,21 @@ were trained on the training data in the datasets' global-x frame and are the mo
 - The training TOMLs started from the recipes of these models: `sngp_turb.toml` (5000 epochs) of the ep5000 SNGP,
   the `[turb]` branch of `sngp_lamturb.toml` (4000 epochs) of the ep4000 SNGP, `error_turb.toml` and the `[turb]`
   branch of `error_lamturb.toml` of the turbulent error model, and the `[lam]` branches of the laminar models. They
-  now differ in `ModelName`, `Seed`, `SmoothEpochs` (`0` for these models), the windows and the additional turbulent
-  data ([gf models](#gf-models-the-training-tomls)). With the default `DecayUnit` and `DropoutActive` they train with
-  the current SNGP settings (see [Configuration](#training-tomls-sngp-error)). Models trained with the reference
-  recipes on the reference baselines perform like the reference models (comparison in
+  now differ in `ModelName`, `Seed`, `SmoothEpochs` (`0` for these models), the baselines and the training data
+  ([u2f_cons models](#u2f_cons-models-the-training-tomls)). With the default `DecayUnit` and `DropoutActive` they
+  train with the current SNGP settings (see [Configuration](#training-tomls-sngp-error)). Models trained with the
+  reference recipes on the reference baselines perform like the reference models (comparison in
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), section 12).
 - The reference models were trained without seeds, so their exact splits cannot be reproduced.
-- The laminar error model was trained on the laminar A-airfoil files up to n1/δ = 1 (`down0p005_up1`, the
-  "UPY1" in its name), which `error/error_lamturb.toml` uses. The laminar SNGP was trained on the narrower
-  `down0p02_up0p8` files (`sngp/sngp_lamturb.toml`).
+- The reference laminar error model was trained on laminar A-airfoil data up to n1/δ = 1 ("UPY1" in its name), and
+  the reference laminar SNGP on a narrower extraction, n1/δ from 0.02 to 0.8 ("UPY0p8").
 
 ### Where new models go
 
 `train_turb.py`/`train_lamturb.py` save to `models/sngp/<ModelName>` and `models/error/<ModelName>` (error-model
 snapshots in `models/error/checkpoints/`), and `train_wm_proposal.py` to a subfolder per run in `models/baseline/`.
-Models trained locally are git-ignored; only the reference models and the u2f models are tracked.
+Models trained locally are git-ignored; only the reference models, the default u2f models and the u2f_cons_d0p0025
+laminar baseline (best-validation checkpoint) are tracked.
 
 ## Baseline testing tools (upstream)
 
@@ -577,7 +599,7 @@ installation is needed for them. The scripts of this repository do not need LaTe
 | `src/trainer.py` | Checkpoints also store `train_index` / `valid_index` (int64 tensors). |
 | `src/README.md` | New section listing the changes to `src/`. |
 | `train_wm_proposal.py` | Raises `RuntimeError` instead of a string. Optional `[general] Seed`. |
-| `wall_model_cases.py` | Additional dataset keys (A-airfoil full 2D fields and their laminar sets, NASA hump regions, a-posteriori LES sets, ...). Keys whose files are not included are listed at the top of the file. |
+| `wall_model_cases.py` | Additional dataset keys (A-airfoil 2M full-2D-field sets, NASA hump regions, a-posteriori LES sets, ...). Keys whose files are not included are listed at the top of the file. |
 | `plot_utils.py`, `src/plot_utils.py`, `src/visualization.py` | No longer load a personal matplotlib style file. |
 | `test_model.py`, `test_model_summary_table.py`, `src/wall_model.py` | Create their output folders when needed. The summary table keeps dots in the checkpoint name and accepts a model subfolder (e.g. `baseline/<checkpoint>.pth`). |
 | `requirements.txt` | New: the pinned Python 3.11 environment. |

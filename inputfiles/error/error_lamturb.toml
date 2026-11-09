@@ -18,22 +18,22 @@ Seed      = 2345         # seeds splits, weights and shuffling
 # Laminar branch
 # =====================================================================================================
 [lam.general]
-# Reference model (./models/error/, read-only), for comparison:
+# The u2f_cons_d0p0025 laminar error model. Default u2f model of the test scripts: error_model_lam_u2f. Reference model
+# (./models/error/, read-only), for comparison:
 #   error_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY1_CustomLayers_N60xL6_wVal_ep4000
-ModelName = "error_model_lam_gf"
+ModelName = "error_model_lam_u2f_cons_d0p0025"
 
 [lam.baseline]
-# The reference laminar baseline; set this to the best-validation checkpoint of the gf laminar baseline
-# (baseline/baseline_lam.toml -> models/baseline/gf_lam/) once it is trained
-Checkpoint = "baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth"
+# The u2f_cons_d0p0025 laminar baseline, best-validation checkpoint (reference:
+# baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth)
+Checkpoint = "baseline/u2f_cons_d0p0025_lam/NN_wm_CH0_G0_S0_tn444160_vn111040_fds0_lds0_customw1_inputs2/NN_wm_CH0_G0_S0_tn444160_vn111040_fds0_lds0_customw1_inputs2_ep30000_tl0.00013082_vl0.00013211.pth"
 
 [lam.data]
-# Laminar regions of the A-airfoil 2M case, n1/delta in [0.005, 1]: the data of the reference model ('UPY1' in its
-# name). Its normalisation statistics match these files. The laminar SNGP uses the narrower
-# down0p02_up0p8 extraction instead (sngp/sngp_lamturb.toml).
-AddDatasets = ["aairfoil_2M_full2Dfield_down0p005_up1_laminar_ZPG",
-               "aairfoil_2M_full2Dfield_down0p005_up1_laminar_APG",
-               "aairfoil_2M_full2Dfield_down0p005_up1_laminar_FPG"]
+# Pressure-gradient zones of the laminar region of the A-airfoil 2M full 2D field (h5 case names
+# aairfoil_laminar_{ZPG,APG,FPG}); the laminar SNGP uses the same data (sngp/sngp_lamturb.toml)
+AddDatasets = ["aairfoil_2M_full2Dfield_down0_up1_laminar_ZPG",
+               "aairfoil_2M_full2Dfield_down0_up1_laminar_APG",
+               "aairfoil_2M_full2Dfield_down0_up1_laminar_FPG"]
 TrainRatio = 0.8
 upy   = 0.99             # n1/delta <= 0.99 (the window of every laminar model; upy >= 1 would mean no upper cut)
 downy = 0.0025           # n1/delta >= 0.0025
@@ -80,14 +80,15 @@ MuRange      = []
 # Turbulent branch: same recipe as error/error_turb.toml
 # =====================================================================================================
 [turb.general]
+# The u2f_cons_d0p0025 turbulent error model (used by both test scripts with the u2f_cons_d0p0025 models). The default u2f models
+# of the test scripts use error_model_turb_u2f of error/error_turb.toml (same recipe and seed as this branch had).
 # Reference model (./models/error/, read-only), for comparison:
 #   error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811
-ModelName = "error_model_lamturb_turb_gf"
+ModelName = "error_model_lamturb_turb_u2f_cons_d0p0025"
 
 [turb.baseline]
-# The reference turbulent baseline; set this to the best-validation checkpoint of the gf baseline
-# (baseline/baseline_turb.toml -> models/baseline/gf/) once it is trained
-Checkpoint = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
+# The u2f turbulent baseline (also used by u2f_cons_d0p0025: the same settings), best-validation checkpoint (reference: baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth)
+Checkpoint = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
 
 [turb.data]
 AddDatasets = ["curved_TBL_APG", "curved_TBL_FPG", "hump_FPG", "hump_FPG_SEP",

@@ -10,12 +10,16 @@
 # All class operations below use class NAMES (validated); the integer labels are derived from them.
 
 [general]
-# Output directory name under SaveDir (required). 'gf' marks the models trained with these settings on the
-# global-frame training data (see error/error_turb.toml). Reference models (./models/sngp/, read-only), for comparison:
+# Output directory name under SaveDir (required). 'u2f_cons_d0p0025' marks the models trained on the u2-positive-frame
+# data with the consolidated A-airfoil sets and the n1/delta windows [0.0025, 0.15] (turbulent) / [0.0025, 0.99]
+# (laminar); 'u2f_cons' the same with downy 0.005.
+# No turbulent-only u2f/u2f_cons(_d0p0025) SNGP has been trained: the test scripts use the 4000-epoch turbulent branch of
+# sngp/sngp_lamturb.toml (sngp_model_lamturb_turb_u2f by default). Reference models (./models/sngp/, read-only),
+# for comparison:
 #   sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep5000_merged   (this recipe, 5000 epochs)
 #   sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged   (this recipe, 4000 epochs; the turbulent SNGP
-#                                                                       deployed in CharLES BFMv2 and used by the test scripts)
-ModelName = "sngp_model_turb_gf"
+#                                                                       deployed in CharLES BFMv2)
+ModelName = "sngp_model_turb_u2f_cons_d0p0025"
 SaveDir   = "./models/sngp"   # directory receiving <ModelName>/ (SavedModel + assets/metadata.json, history.json, split_indices.npz)
 Save      = true         # false: train and write diagnostics only
 Overwrite = false        # true: replace an existing <SaveDir>/<ModelName> (otherwise the script stops before training)
@@ -28,9 +32,8 @@ Seed      = 2345         # seeds the baseline train/valid split (if the checkpoi
 # training datasets (= the first SNGP classes, in checkpoint order) and the input scaling.
 # The SNGP/error model see the baseline's own train/valid split: the indices stored in checkpoints trained with
 # this repository, otherwise (e.g. the reference checkpoints) the random split re-drawn with Seed.
-# The reference turbulent baseline; set this to the best-validation checkpoint of the gf baseline
-# (baseline/baseline_turb.toml -> models/baseline/gf/) once it is trained
-Checkpoint = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
+# The u2f turbulent baseline (also used by u2f_cons_d0p0025: the same settings) (reference: baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth)
+Checkpoint = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
 
 [data]
 # Additional datasets (registry keys of wall_model_cases.py / ./data/<key>_data.h5), appended as extra classes

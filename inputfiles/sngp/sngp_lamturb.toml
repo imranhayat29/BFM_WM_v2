@@ -18,20 +18,22 @@ Seed      = 2345         # seeds splits, weights, shuffling and dropout
 # Laminar branch: laminar baseline (FS_ZPG/APG/FPG) + laminar A-airfoil additional data
 # =====================================================================================================
 [lam.general]
-# Reference model (./models/sngp/, read-only), for comparison:
+# The u2f_cons_d0p0025 laminar SNGP. Default u2f model of the test scripts: sngp_model_lam_u2f. Reference model
+# (./models/sngp/, read-only), for comparison:
 #   sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY0p8_ep20000_merged
-ModelName = "sngp_model_lam_gf"
+ModelName = "sngp_model_lam_u2f_cons_d0p0025"
 
 [lam.baseline]
-# The reference laminar baseline; set this to the best-validation checkpoint of the gf laminar baseline
-# (baseline/baseline_lam.toml -> models/baseline/gf_lam/) once it is trained
-Checkpoint = "baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth"
+# The u2f_cons_d0p0025 laminar baseline, best-validation checkpoint (reference:
+# baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth)
+Checkpoint = "baseline/u2f_cons_d0p0025_lam/NN_wm_CH0_G0_S0_tn444160_vn111040_fds0_lds0_customw1_inputs2/NN_wm_CH0_G0_S0_tn444160_vn111040_fds0_lds0_customw1_inputs2_ep30000_tl0.00013082_vl0.00013211.pth"
 
 [lam.data]
-# Laminar regions of the A-airfoil 2M case (h5 case names aairfoil_laminar_{ZPG,APG,FPG}), n1/delta in [0.02, 0.8]
-AddDatasets = ["aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_ZPG",
-               "aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_APG",
-               "aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_FPG"]
+# Pressure-gradient zones of the laminar region of the A-airfoil 2M full 2D field (h5 case names
+# aairfoil_laminar_{ZPG,APG,FPG}); the laminar error model uses the same data (error/error_lamturb.toml)
+AddDatasets = ["aairfoil_2M_full2Dfield_down0_up1_laminar_ZPG",
+               "aairfoil_2M_full2Dfield_down0_up1_laminar_APG",
+               "aairfoil_2M_full2Dfield_down0_up1_laminar_FPG"]
 TrainRatio = 0.8         # seeded 80/20 split of the additional data
 upy   = 0.99             # n1/delta <= 0.99 (the window of every laminar model; upy >= 1 would mean no upper cut)
 downy = 0.0025           # n1/delta >= 0.0025
@@ -88,14 +90,14 @@ ConfidenceRange = [0.0, 1.0]
 # Turbulent branch: same recipe as sngp/sngp_turb.toml, 4000 epochs (the recipe of the SNGP deployed in CharLES BFMv2)
 # =====================================================================================================
 [turb.general]
-# Reference model (./models/sngp/, read-only), for comparison:
+# The u2f_cons_d0p0025 turbulent SNGP. Default u2f model of the test scripts: sngp_model_lamturb_turb_u2f. Reference model
+# (./models/sngp/, read-only), for comparison:
 #   sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged
-ModelName = "sngp_model_lamturb_turb_gf"
+ModelName = "sngp_model_lamturb_turb_u2f_cons_d0p0025"
 
 [turb.baseline]
-# The reference turbulent baseline; set this to the best-validation checkpoint of the gf baseline
-# (baseline/baseline_turb.toml -> models/baseline/gf/) once it is trained
-Checkpoint = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
+# The u2f turbulent baseline (also used by u2f_cons_d0p0025: the same settings), best-validation checkpoint (reference: baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth)
+Checkpoint = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
 
 [turb.data]
 AddDatasets = ["curved_TBL_APG", "curved_TBL_FPG", "hump_FPG", "hump_FPG_SEP",
