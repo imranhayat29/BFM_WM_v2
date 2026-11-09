@@ -14,8 +14,8 @@ of the baseline) and an **SNGP confidence model**, combined in a blended "expert
   is not, and an equilibrium wall model (EQWM) or a laminar law where the confidence is low or the matching
   point is very close to the wall.
 
-This repository is a fork of [yuenongling/BFM_WM](https://github.com/yuenongling/BFM_WM) (git remote
-`upstream`). The baseline wall model, its data handling and its training/testing scripts are upstream's
+This repository is based on [yuenongling/BFM_WM](https://github.com/yuenongling/BFM_WM) (git remote `upstream`)
+and keeps its history. The baseline wall model, its data handling and its training/testing scripts are upstream's
 (with the changes listed in [Changes relative to upstream](#changes-relative-to-upstream)). This repository
 adds the error model, the SNGP confidence model, the blended prediction, their training and test scripts
 with TOML configs, an a-priori test on all cases, and exporters to the CharLES BFMv2 solver (the
@@ -97,7 +97,7 @@ docs/DEVELOPMENT.md      developer notes (see Development notes)
 - **Getting the code, data and reference models.** The data and the reference models are stored with git-lfs, so
   install [git-lfs](https://git-lfs.com) first. Then:
   ```bash
-  git clone -b v2 https://github.com/imranhayat29/BFM_WM.git BFM_WM_v2
+  git clone -b v2 https://github.com/imranhayat29/BFM_WM_v2.git
   cd BFM_WM_v2
   git lfs install --local && git lfs pull     # about 1.3 GB to download, about 2.6 GB on disk
   ```

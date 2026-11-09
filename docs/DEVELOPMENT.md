@@ -28,8 +28,8 @@ Contents:
 | Name | Location | Role |
 |---|---|---|
 | upstream | [github.com/yuenongling/BFM_WM](https://github.com/yuenongling/BFM_WM), remote `upstream` | Baseline BFM wall model: `src/`, `train_wm_proposal.py`, `test_model*.py`, `wall_model_cases.py`, `data/` (git-lfs) |
-| notebook fork, "BFM_WM" | [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM), branch `wip-bfm-error-model`; a local clone (treat as read-only) | The owner's fork that added the error model, the SNGP and the blended correction, driven by Jupyter notebooks (`src_err/*.py` helpers, notebooks at the top level) |
-| BFM_WM_v2 (this repo) | branch `v2` of [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM), remote `origin` | Clone of upstream plus a script/TOML refactor of the notebook fork |
+| notebook fork, "BFM_WM" | [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM), branch `wip-bfm-error-model`, remote `fork`; a local clone (treat as read-only) | The owner's fork that added the error model, the SNGP and the blended correction, driven by Jupyter notebooks (`src_err/*.py` helpers, notebooks at the top level) |
+| BFM_WM_v2 (this repo) | [github.com/imranhayat29/BFM_WM_v2](https://github.com/imranhayat29/BFM_WM_v2), branch `v2`, remote `origin`; until 2026-11-08 branch `v2` of the notebook fork ([1.3](#13-git-layout-of-this-repository)) | Clone of upstream plus a script/TOML refactor of the notebook fork |
 | expert script | `BFM_WM/test_expert_model.py`; a standalone copy (BFM_WM_expert) | Earlier inference-only script of the blended model (argparse, `--gating-reference`); a reference for the test scripts' `summary.json` |
 | data generation | [github.com/yuenongling/WM_data_creation](https://github.com/yuenongling/WM_data_creation) | Creates the HDF5 datasets; the place to regenerate data in another frame (see [9.3](#93-remaining-difference-the-input-sign-frame)) |
 | CharLES BFMv2 | private local git repository | LES solver that deploys the exported models |
@@ -58,9 +58,15 @@ a-posteriori class import, ...) were not ported. To read a notebook as a script:
 
 ### 1.3 Git layout of this repository
 
-- `git clone` of upstream master at `7794771`; remote `origin` renamed to `upstream`. Published as branch `v2` (the
-  default branch) of the owner's public fork [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM)
-  (remote `origin`), next to the fork's own branches `master` and `wip-bfm-error-model`.
+- `git clone` of upstream master at `7794771`; remote `origin` renamed to `upstream`.
+- Published on 2026-10-26 as branch `v2` (the default branch) of the owner's public fork
+  [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM), next to the fork's own branches `master`
+  and `wip-bfm-error-model`. That fork is now remote `fork`; its `v2` ends at `158583f`.
+- Since 2026-11-08 the standalone public repository
+  [github.com/imranhayat29/BFM_WM_v2](https://github.com/imranhayat29/BFM_WM_v2) (remote `origin`, default branch
+  `v2`), with the full history and the git-lfs files of all its commits. GitHub rejects a push whose commits reference
+  git-lfs files it does not have (GH008), so the 220 old versions of `data/` files used only by upstream commits older
+  than `7794771` (1.4 GB) were uploaded too.
 - Branch `v2` = the refactor, in logical commits (`git log --reverse upstream/master..v2`):
   1. Port the fork's changes to the parent package (`src/`, `wall_model_cases.py`, `plot_utils.py`, `train_wm_proposal.py`)
   2. Training data of the fork (git-lfs), see [section 5](#5-data-provenance)
