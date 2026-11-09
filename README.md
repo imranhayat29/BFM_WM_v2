@@ -523,7 +523,7 @@ were trained on the training data in the datasets' global-x frame and are the mo
 
 `train_turb.py`/`train_lamturb.py` save to `models/sngp/<ModelName>` and `models/error/<ModelName>` (error-model
 snapshots in `models/error/checkpoints/`), and `train_wm_proposal.py` to a subfolder per run in `models/baseline/`.
-Models trained locally are git-ignored; only the reference models are tracked.
+Models trained locally are git-ignored; only the reference models and the u2f models are tracked.
 
 ## Baseline testing tools (upstream)
 

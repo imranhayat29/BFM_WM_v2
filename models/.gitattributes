@@ -1,4 +1,4 @@
-# Model files are stored with git-lfs (reference models; see the README, "Reference models")
+# Model files are stored with git-lfs (the reference models and, on branch u2f, the u2f models; see the README, "Models")
 *.pth filter=lfs diff=lfs merge=lfs -text
 *.pb filter=lfs diff=lfs merge=lfs -text
 *.npz filter=lfs diff=lfs merge=lfs -text

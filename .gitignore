@@ -34,3 +34,11 @@ tables/
 paper_plots/
 # Global-frame originals of the datasets converted to the u2-positive frame (local backup)
 data/backup_global_frame/
+# u2f models (branch u2f): the u2f baseline's best-validation checkpoint and the u2f SNGPs and error models
+!/models/baseline/u2f/
+/models/baseline/u2f/*/*
+!/models/baseline/u2f/*/*_ep799854_tl0.03780486_vl0.03945941.pth
+!/models/sngp/sngp_model_lam_u2f/
+!/models/sngp/sngp_model_lamturb_turb_u2f/
+!/models/error/error_model_lam_u2f/
+!/models/error/error_model_turb_u2f/
