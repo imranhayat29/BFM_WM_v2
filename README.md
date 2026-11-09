@@ -55,7 +55,7 @@ src_err/                 error model, SNGP, blended correction, data, metrics, p
 tools/                   CharLES export scripts (see tools/README.md)
 wall_model_cases.py      dataset registry (upstream + additional keys)
 data/                    HDF5 datasets (git-lfs)
-models/                  reference models (git-lfs) and local ones: baseline/, sngp/, error/ (see Models)
+models/                  default (u2f) and reference models: baseline/, sngp/, error/ (see Models)
 docs/DEVELOPMENT.md      developer notes (see Development notes)
 ```
 
@@ -111,7 +111,9 @@ docs/DEVELOPMENT.md      developer notes (see Development notes)
 
 Data are stored in `data/` directories. They cover data summarized in [Table](https://docs.google.com/spreadsheets/d/18hcHtwxN7-uUAkYSo2UL1Tny2SpPDvQiWsKEqjHOlh0/edit?usp=sharing) and the data generation repository [Repo](https://github.com/yuenongling/WM_data_creation?tab=readme-ov-file).
 
-`data/` holds the **training data** of all reference models and the **lam-turb test set**. Differences from
+`data/` holds the **training data** of all models and the **lam-turb test set**. The datasets are in the
+u2-positive input frame of the default models (see [To do](#to-do)); the reference models were trained on them in
+the datasets' global-x frame. Differences from
 upstream's data:
 
 | File | Change | Why |
@@ -265,7 +267,7 @@ python test_turb_allcases.py --replot results/test_turb_allcases --input-space t
 **Processing of each dataset**
 
 1. **Load** with the `[data]` wall-distance window (default n1/δ in `[0.0025, 0.15]`, the training window of the
-   turbulent baseline) and `Stride`.
+   reference and u2f turbulent baselines) and `Stride`.
 2. **Domain filter** `[evaluation].DomainFilter`: `"retau"` keeps points with $|u_\tau\delta/\nu|$ > `RetauMin` (5),
    `"piout"` keeps $|\pi_{out,true}| \ge$ `PioutMin` (2), `"none"` keeps all; a zero minimum disables the filter.
 3. **Sample cap** `MaxSamplesPerDataset` (deterministic, evenly spaced).
@@ -292,7 +294,7 @@ datasets listed in `[data].Datasets` are evaluated.
   (maroon); a group is `training` if its name or any member is listed. The default list holds the training sets of
   the turbulent baseline plus the additional training sets of the error model and the SNGP. The JHU transitional
   boundary layer appears twice: `Transition_transition` (its transition region, which the error model and the SNGP
-  of the reference models were trained on, role `training`) and the full `Transition` case (role `untrained`).
+  of the default u2f models were trained on, role `training`) and the full `Transition` case (role `untrained`).
   The training TOMLs no longer add `Transition_transition`, so remove it from `TrainingDatasets` when testing
   models trained with them.
 - **Per case:** mean, median and P90 of |e%| for the baseline, the blended (final), the always-corrected and the
@@ -454,7 +456,7 @@ turbulent-only / lam-turb.
 | Section | Main keys (default) |
 |---|---|
 | `[general]` | `OutputDir` (`results/test_turb_gaussian_2M` / `results/test_lamturb`), `Formats` (`["png", "pdf"]`), `GpuNum` (`0`), `SaveArrays` (`false`) |
-| `[models]` | `Baseline`, `Sngp`, `Error`: path relative to `./models` (e.g. `sngp/<name>`) or any path (default: the reference models of the branch) |
+| `[models]` | `Baseline`, `Sngp`, `Error`: path relative to `./models` (e.g. `sngp/<name>`) or any path (default: the u2f models of the branch, see [Models](#models-models)) |
 | `[classes]` | `PosthocGroups`, `DisplayNames` (default: those stored in the SNGP metadata) |
 | `[data]` | `Datasets`, `upy` (`0.15` / `1.0`), `downy` (`0.0`), `Stride` (`2`: every 2nd point), `MaxSamples` (`0` = all), `InputFrame` (`"u2"`: the CharLES input frame; `"global"`: the datasets' frame), `Files` |
 | `[eqwm]` | `Law`: `"charles"` (default, CharLES BFMv2 two-layer law) or `"parent"` (upstream's `src/baseline_models.log_law_solve`: log law, re-solved with a cubic near-wall layer below $y^+ = 23$) |
@@ -470,6 +472,22 @@ The gate entries are inline tables, e.g. `Confidence = { Threshold = 0.7, Delta 
 
 `models/` holds one folder per kind of model: `baseline/` (PyTorch checkpoints), `sngp/` and `error/` (TensorFlow
 SavedModels). The TOMLs refer to a model by its path relative to `./models` (e.g. `sngp/<name>`) or by any other path.
+
+### Default models (u2f)
+
+The test TOMLs use these models by default. They were trained on the training data in the u2-positive input frame,
+the frame in which CharLES BFMv2 gives the networks their inputs (`u2f` in the names; see [To do](#to-do)).
+
+| Model (in `models/`) | Role |
+|---|---|
+| `baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/…_ep799854_tl0.03780486_vl0.03945941.pth` | turbulent baseline (best validation epoch of 800000) |
+| `sngp/sngp_model_lamturb_turb_u2f` | turbulent SNGP (4000 epochs) |
+| `error/error_model_turb_u2f` | turbulent error model (both variants) |
+| `sngp/sngp_model_lam_u2f` | laminar SNGP |
+| `error/error_model_lam_u2f` | laminar error model |
+
+- The laminar branch combines them with the reference laminar baseline, which was not retrained.
+- Their training settings are recorded in their metadata; docs/DEVELOPMENT.md, section 13, lists them.
 
 ### gf models (the training TOMLs)
 
@@ -498,13 +516,13 @@ were trained on the training data in the datasets' global-x frame and are the mo
 
 | Model (in `models/`) | Role | Used by default in | In CharLES BFMv2 |
 |---|---|---|---|
-| `baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth` | turbulent baseline (both variants) | all training TOMLs (turbulent), all three test TOMLs | yes |
+| `baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth` | turbulent baseline (both variants) | all training TOMLs (turbulent) | yes |
 | `baseline/NN_wm_CH0_G0_S0_tn560665_vn140167_fds0_lds0_customw1_inputs2_final_ep30000_tl0.00032144_vl0.00031670.pth` | laminar baseline | lam-turb training TOMLs (`[lam]`), `test_lamturb.toml` | yes |
-| `sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged` | turbulent SNGP (4000 epochs) | all three test TOMLs | yes |
+| `sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged` | turbulent SNGP (4000 epochs) | none | yes |
 | `sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep5000_merged` | alternative turbulent SNGP (5000 epochs) | none | no |
-| `sngp/sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY0p8_ep20000_merged` | laminar SNGP | `test_lamturb.toml` | yes |
-| `error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811` | turbulent error model (both variants) | all three test TOMLs | yes |
-| `error/error_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY1_CustomLayers_N60xL6_wVal_ep4000` | laminar error model | `test_lamturb.toml` | yes |
+| `sngp/sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY0p8_ep20000_merged` | laminar SNGP | none | yes |
+| `error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811` | turbulent error model (both variants) | none | yes |
+| `error/error_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY1_CustomLayers_N60xL6_wVal_ep4000` | laminar error model | none | yes |
 
 - The training TOMLs started from the recipes of these models: `sngp_turb.toml` (5000 epochs) of the ep5000 SNGP,
   the `[turb]` branch of `sngp_lamturb.toml` (4000 epochs) of the ep4000 SNGP, `error_turb.toml` and the `[turb]`
@@ -579,6 +597,9 @@ installation is needed for them. The scripts of this repository do not need LaTe
   - Open: more accurate predictions on reversed flow in the CharLES frame. Training on data converted to the
     u2-positive frame was tried; it fixed the reversed-flow points but was less accurate on the flows it was not
     trained on, so the main branch (`v2`) keeps the training data in the global frame.
+  - This branch (`u2f`): the datasets in `data/` are converted to the u2-positive frame and all models except
+    the laminar baseline retrained (the default `u2f` models, see [Models](#models-models)). They are less accurate
+    than the reference models on the flows they were not trained on, except on reversed-flow points.
   - Why this frame: a wall model in a real application does not always know the global flow direction, so
     reversal cannot be defined relative to it. Taking $u_2$ as the local reference decides whether the flow is
     locally reversed and which way the pressure gradient points. It also gives the desired symmetry: if $u_1$

@@ -19,14 +19,18 @@ Formats   = ["pdf", "png"]                   # Figure formats (png, pdf, svg, jp
 GpuNum    = 0                                # GPU index for torch and TensorFlow (-1 = CPU); --gpu overrides
 
 [models]
-# Paths relative to ./models/ (baseline/, sngp/, error/) or any path. Same reference models as test_turb.toml (the turbulent set CharLES BFMv2 runs).
-Baseline = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
-Sngp     = "sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged"
-Error    = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811"
+# Paths relative to ./models/ (baseline/, sngp/, error/) or any path. Same models as test_turb.toml: the default u2f
+# turbulent models (trained on the u2-positive-frame data). The reference turbulent models that CharLES BFMv2 runs: Baseline = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth",
+# Sngp = "sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged" (or the 5000-epoch ..._ep5000_merged),
+# Error = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811".
+Baseline = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
+Sngp     = "sngp/sngp_model_lamturb_turb_u2f"
+Error    = "error/error_model_turb_u2f"
 
 [classes]
 # Post-hoc grouping (class labels of the input-space class figures only; the confidence always uses the un-merged
-# SNGP classes) and display names. Without these keys the SNGP metadata is used (the reference SNGPs store none), e.g.
+# SNGP classes) and display names. Without these keys the SNGP metadata is used (the u2f SNGP stores the groups and
+# names of test_turb.toml; the reference SNGPs store none), e.g.
 # PosthocGroups = { "APG TBL" = ["APG", "Curved BL APG"], "FPG TBL" = ["FPG", "NASA Hump FPG", "Curved BL FPG"], "Separation" = ["SEP", "NASA Hump SEP"] }
 # DisplayNames  = { CH = "ZPG TBL", FS_ZPG = "Viscous ZPG", FS_APG = "Viscous APG", FS_FPG = "Viscous FPG", transition_JHU_transition = "Transition BL" }
 

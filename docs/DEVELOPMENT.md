@@ -18,6 +18,7 @@ Contents:
 10. [Analyses worth keeping](#10-analyses-worth-keeping)
 11. [Development notes](#11-development-notes)
 12. [Reproduction of the reference models with v2](#12-reproduction-of-the-reference-models-with-v2)
+13. [Default models: u2f](#13-default-models-u2f)
 
 ---
 
@@ -667,6 +668,9 @@ too; CharLES deadbands and time filtering are not reproduced. Check: with the re
 the global-frame data gives per-point results bit-identical to `"global"` on the converted data (`test_turb`, Gaussian
 bump 2M, 41 616 points; `test_lamturb`, A-airfoil full field, 60 000 points).
 
+On this branch (`u2f`) `data/` holds the converted datasets ([13](#13-default-models-u2f)); `InputFrame = "u2"`
+leaves them unchanged (no π3 < 0).
+
 ---
 
 ## 10. Analyses worth keeping
@@ -931,3 +935,62 @@ with settings taken over from the u2-frame retraining (branch `u2f`):
 - The SNGP and error TOMLs point to the reference baselines until the gf baselines are trained; then set their
   `[baseline] Checkpoint` to the best-validation checkpoints in `models/baseline/gf/` and `models/baseline/gf_lam/`.
 - Not trained yet. The test TOMLs keep the reference models.
+
+---
+
+## 13. Default models: u2f
+
+Since 2026-11-03 the test TOMLs and the `[models]` defaults in `src_err/config.py` (`DEFAULT_*`; `SHIPPED_*` keep the
+reference paths) use the models retrained on the data in the u2-positive input frame ("u2f"); the training TOMLs were
+their recipes until 2026-11-05 and train the u2f_cons models since, now with `downy` 0.0025 ([14](#14-u2f_cons-models)). CharLES BFMv2 keeps
+the reference models.
+
+### 13.1 The models
+
+- Data: the datasets in `data/` converted to the u2-positive frame of CharLES BFMv2
+  ([9.3](#93-remaining-difference-the-input-sign-frame)): the points with u2 < 0 in the global frame are mirrored
+  (odd input columns negated, upstream/downstream stencil sets swapped). The global-frame originals are in the
+  git-ignored `data/backup_global_frame/`. The laminar A-airfoil ZPG/APG/FPG files were rebuilt, converted and
+  re-split by the sign of up. Conversion code: branch `u2-positive-frame` of a local WM_data_creation clone
+  (`data_processing_utils.to_u2_positive_frame`, `convert_to_u2_frame.py`).
+- Recipe: the training TOMLs of 2026-11-03, i.e. the reference recipes with `Seed = 2345`, the u2f turbulent baseline for
+  the turbulent SNGP and error model, and `SmoothEpochs = 200` for the error models. `SmoothEpochs` (new
+  `[training.EarlyStopping]` key, `src_err/error_model.SmoothedBestWeights`) restores the epoch with the lowest
+  exponential moving average (span 200) of `val_loss` instead of its raw minimum, which is noisy for the NLL. The
+  laminar branch keeps the reference laminar baseline. Not trained: `sngp_model_turb_u2f` (5000 epochs) and
+  `error_model_lamturb_turb_u2f` (same recipe and seed as `error_model_turb_u2f`).
+- Selection: seed 2345 was the best of three retrainings (seeds 1234, 2345, 3456) in both frames, each paired
+  with a global-frame control of the same recipe (worktree `BFM_WM_v2_gfctrl`, git-ignored models). The u2f
+  baseline is its best-validation checkpoint (epoch 799,854 of 800,000, validation loss 0.0395). Records,
+  evaluation and reports of the experiment: git-ignored `results/u2frame/`.
+- Accuracy (mean |e| in %, baseline / blended; CPU runs of the default test TOMLs, in parentheses the reference
+  models on the global-frame data with the same settings, 2026-10-25/26; [12.2](#122-a-priori-comparison) used
+  Kt/Km threshold 0.002 for the A-airfoil):
+
+  | Test | u2f | (reference) |
+  |---|---|---|
+  | `test_turb` (Gaussian bump 2M) | 5.30 / 2.39 | (6.83 / 2.50) |
+  | `test_lamturb` (A-airfoil; median) | 51.17 / 44.67 (5.93 / 4.72) | (44.89 / 43.24; 6.21 / 4.50) |
+  | Benchmark, 77 cases unweighted | 11.62 / 10.34 | (9.62 / 8.81) |
+  | Benchmark, 50 untrained cases | 13.84 / 12.08 | (10.82 / 10.14) |
+
+  The u2f models fix the reversed-flow points that the reference models get wrong in the CharLES frame (blended
+  16.0 % vs 35.4 % on the separated training sets) but are less accurate on the untrained flows. The retrained
+  global-frame control is also less accurate there than the reference models, so the gap comes from the retraining
+  rather than from the frame (retraining on the December 2025 data versions of [5.3](#53-training-data-of-the-turbulent-reference-baseline) did not close it).
+- In git (git-lfs, `.gitignore` exceptions) on this branch: the u2f baseline's best-validation checkpoint and the
+  four u2f SNGPs and error models; the other baseline checkpoints and the error-model snapshots stay local.
+
+### 13.2 Names
+
+- Renamed on 2026-11-03: the seed-2345 models `*_u2f_s2345` (and `models/baseline/u2f_s2345/`) to `*_u2f`, together
+  with their `results/training/` folders and the experiment's files in `results/u2frame/`. The models of the other
+  seeds were deleted (backup outside the repository). The experiment records of the first run, which had used the
+  plain `u2f` names (seed 1234), are now `*_u2f_first`; `results/u2frame/analyze.RENAMED` maps the old names for the
+  experiment scripts.
+- The [12](#12-reproduction-of-the-reference-models-with-v2) models `*_v2` are now `*_b4u2f` ("before u2f": reference
+  baselines, global-frame data, seed 1234), also in `results/compare/` and the annotated TOMLs of
+  [7](#7-annotated-tomls).
+- The `metadata.json` of the renamed SNGPs and error models carry the new names. Records keep the names they were
+  written with: the embedded config of the u2f baseline checkpoint (`SaveDir`, `config_file`), Slurm logs, test
+  summaries and the experiment reports.

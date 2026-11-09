@@ -110,6 +110,16 @@ SHIPPED_LAM_SNGP = "sngp/sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUP
 SHIPPED_TURB_ERROR = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811"
 SHIPPED_LAM_ERROR = "error/error_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY1_CustomLayers_N60xL6_wVal_ep4000"
 
+# Default models of the test TOMLs: the u2f models, trained on the u2-positive-frame data (best-validation checkpoint
+# of the u2f turbulent baseline); the laminar branch keeps the reference laminar baseline, which was not retrained
+DEFAULT_TURB_BASELINE = ("baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/"
+                         "NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth")
+DEFAULT_LAM_BASELINE = SHIPPED_LAM_BASELINE
+DEFAULT_TURB_SNGP = "sngp/sngp_model_lamturb_turb_u2f"
+DEFAULT_LAM_SNGP = "sngp/sngp_model_lam_u2f"
+DEFAULT_TURB_ERROR = "error/error_model_turb_u2f"
+DEFAULT_LAM_ERROR = "error/error_model_lam_u2f"
+
 FIGURE_FORMATS = ["png", "pdf", "svg", "jpg", "eps"]
 # PDF estimators of src_err/plotting.py ('hist' is an alias of 'histogram')
 PDF_METHODS = ["kde", "histogram", "hist", "both"]
@@ -284,10 +294,10 @@ def _gates_schema(variant: str) -> Dict[str, Any]:
 
 def _models_schema(branch: str) -> Dict[str, Any]:
     if branch == "lam":
-        return {"Baseline": Key("str", SHIPPED_LAM_BASELINE), "Sngp": Key("str", SHIPPED_LAM_SNGP),
-                "Error": Key("str", SHIPPED_LAM_ERROR)}
-    return {"Baseline": Key("str", SHIPPED_TURB_BASELINE), "Sngp": Key("str", SHIPPED_TURB_SNGP),
-            "Error": Key("str", SHIPPED_TURB_ERROR)}
+        return {"Baseline": Key("str", DEFAULT_LAM_BASELINE), "Sngp": Key("str", DEFAULT_LAM_SNGP),
+                "Error": Key("str", DEFAULT_LAM_ERROR)}
+    return {"Baseline": Key("str", DEFAULT_TURB_BASELINE), "Sngp": Key("str", DEFAULT_TURB_SNGP),
+            "Error": Key("str", DEFAULT_TURB_ERROR)}
 
 
 def _test_classes_schema() -> Dict[str, Any]:

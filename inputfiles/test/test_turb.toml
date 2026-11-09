@@ -5,8 +5,8 @@
 # Run from the repository root:
 #   python test_turb.py test/test_turb.toml [--gpu N] [--output-dir DIR] [--max-samples N]
 # Every key is optional; the values below are the defaults, except [classes]: an omitted PosthocGroups or
-# DisplayNames is taken from the SNGP metadata, which is empty for the reference models (so removing them loses
-# the groups and names shown there).
+# DisplayNames is taken from the SNGP metadata (the default u2f SNGP stores the same groups; the reference SNGPs store
+# none, so with them removing the keys loses the groups and names shown there).
 
 [general]
 OutputDir  = "results/test_turb_gaussian_2M"   # Output directory (figures, summary.json, arrays.npz); --output-dir overrides
@@ -15,11 +15,13 @@ GpuNum     = 0                                 # GPU index for torch and TensorF
 SaveArrays = false                             # Also write arrays.npz with every per-point field (predictions, errors, x, n1, ...)
 
 [models]
-# Paths relative to ./models/ (baseline/, sngp/, error/) or any path: the reference turbulent models that CharLES BFMv2 runs. The 5000-epoch SNGP
-# sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep5000_merged is an alternative.
-Baseline = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth"
-Sngp     = "sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged"
-Error    = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811"
+# Paths relative to ./models/ (baseline/, sngp/, error/) or any path: the default u2f turbulent models, trained on the
+# u2-positive-frame data. The reference turbulent models that CharLES BFMv2 runs: Baseline = "baseline/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth",
+# Sngp = "sngp/sngp_model_Baseline_cleanedupNew_Add_ExpertExtFlow_ep4000_merged" (or the 5000-epoch ..._ep5000_merged),
+# Error = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811".
+Baseline = "baseline/u2f/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2/NN_wm_CH1_G0_S1_TBL1_tn728723_vn182181_fds0_lds0_customw1_inputs2_ep799854_tl0.03780486_vl0.03945941.pth"
+Sngp     = "sngp/sngp_model_lamturb_turb_u2f"
+Error    = "error/error_model_turb_u2f"
 
 [data]
 Datasets   = ["gaussian_2M_APG", "gaussian_2M_FPG", "gaussian_2M_SEP", "gaussian_2M_MAPG"]   # Test dataset keys (wall_model_cases.py registry or ./data/<key>_data.h5)
@@ -55,7 +57,7 @@ LowValue = { Threshold = 2.0, Delta = 1.0 }       # Evaluation % errors: 100 e/|
 
 [classes]
 # Post-hoc grouping (class labels and plots only; the confidence always uses the un-merged SNGP classes)
-# and display names. Remove a key to use the SNGP metadata instead (empty for the reference models).
+# and display names. Remove a key to use the SNGP metadata instead (the u2f SNGP stores the same groups; the reference SNGPs store none).
 PosthocGroups = { "APG TBL" = ["APG", "Curved BL APG"], "FPG TBL" = ["FPG", "NASA Hump FPG", "Curved BL FPG"], "Separation" = ["SEP", "NASA Hump SEP"] }
 DisplayNames  = { CH = "ZPG TBL", FS_ZPG = "Viscous ZPG", FS_APG = "Viscous APG", FS_FPG = "Viscous FPG", transition_JHU_transition = "Transition BL" }
 
