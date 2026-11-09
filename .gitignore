@@ -32,3 +32,5 @@ docs/dev_local/
 testing_results/
 tables/
 paper_plots/
+# Global-frame originals of the datasets converted to the u2-positive frame (local backup)
+data/backup_global_frame/
