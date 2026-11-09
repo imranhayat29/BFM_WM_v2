@@ -111,17 +111,21 @@ docs/DEVELOPMENT.md      developer notes (see Development notes)
 
 Data are stored in `data/` directories. They cover data summarized in [Table](https://docs.google.com/spreadsheets/d/18hcHtwxN7-uUAkYSo2UL1Tny2SpPDvQiWsKEqjHOlh0/edit?usp=sharing) and the data generation repository [Repo](https://github.com/yuenongling/WM_data_creation?tab=readme-ov-file).
 
-`data/` holds the **training data** of all reference models and the **lam-turb test set**. Differences from
-upstream's data:
+`data/` holds the **training data** of all models and the **lam-turb test set**, in the datasets' global-x frame.
+Differences from upstream's data:
 
 | File | Change | Why |
 |---|---|---|
 | `FS_ZPG_data.h5`, `FS_APG_data.h5`, `FS_FPG_data.h5` | replaced by larger Falkner-Skan sets (about 5x more points) | used by both reference baselines (laminar and turbulent), hence also part of the turbulent SNGP and error-model training data |
 | `curved_TBL_APG_data.h5`, `curved_TBL_FPG_data.h5` | replaced (same numbers, case names `curved_BL_APG`/`curved_BL_FPG` instead of `curved_BL`) | the SNGP needs the two classes to be distinct |
-| `aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_{ZPG,APG,FPG}.h5` | added | additional training data of the laminar SNGP (n1/δ 0.02-0.8, with a `kt_km` column) |
-| `aairfoil_2M_full2Dfield_down0p005_up1_laminar_{ZPG,APG,FPG}.h5` | added | additional training data of the laminar error model (n1/δ 0.005-1, with a `kt_km` column) |
-| `aairfoil_2M_full2Dfield_down0_up1.h5` | added | test set of `test_lamturb.py`: full 2D-field extraction of the A-airfoil at Re = 2M (wall-normal profiles from the leading to the trailing edge, with a `kt_km` column) |
+| `aairfoil_2M_full2Dfield_down0_up1_laminar_{ZPG,APG,FPG}.h5` | added | laminar region (x/c ≤ 0.123) of the full 2D-field extraction of the A-airfoil at Re = 2M, in pressure-gradient zones: additional training data of the laminar SNGP and error model, and part of the test set of `test_lamturb.py` |
+| `aairfoil_2M_full2Dfield_down0_up1_turbulent.h5` | added | turbulent region (x/c > 0.123) of the same field: the rest of the test set of `test_lamturb.py` |
 
+- **A-airfoil full 2D field.** Wall-normal profiles at every suction-side grid station from the leading to the
+  trailing edge, n1/δ from 0 to 1, with a `kt_km` column (the input of the $k_t/k_m$ sensor). The zone of a laminar
+  point follows its $u_p n_1/\nu$ in the global-x frame, i.e. the sign of the station's wall pressure gradient: FPG
+  below −0.2, ZPG from −0.2 to 0.2, APG above 0.2. The four files are written by the A-airfoil scripts of the data
+  generation repository (`airfoil_Tamaki/`).
 - **Dataset lookup.** The TOMLs name datasets by key. A key is resolved to a file in this order: an explicit
   path in the TOML's `[data.Files]` table, `./data/<key>_data.h5`, then the entry in `wall_model_cases.py`.
 - `wall_model_cases.py` also registers keys whose files are not included (the comment at the top of the file
@@ -478,8 +482,11 @@ not been trained yet; the test TOMLs use the reference models. They differ from 
 
 - **Windows.** One n1/δ window per branch for every model: [0.0025, 0.15] for the turbulent baseline, SNGP and error
   model (reference: the additional data of the SNGP and error model from the wall, [0, 0.15]), and [0.0025, 0.99] for
-  the laminar ones (reference: the laminar baseline saw every Falkner-Skan point, n1/δ up to 1.25, and the additional
-  data of the laminar SNGP and error model were not cut). The loaders treat `upy` ≥ 1 as no upper cut, hence 0.99.
+  the laminar ones (reference: the laminar baseline saw every Falkner-Skan point, n1/δ up to 1.25, and the A-airfoil
+  data of the laminar SNGP and error model were cut to [0.02, 0.8] and [0.005, 1] in their files). The loaders treat
+  `upy` ≥ 1 as no upper cut, hence 0.99.
+- **Laminar A-airfoil data.** Both laminar models add the pressure-gradient zones of the laminar region of the
+  A-airfoil full 2D field (`aairfoil_2M_full2Dfield_down0_up1_laminar_*`; see [Data](#data)).
 - **Additional turbulent data.** The transitional boundary layer `Transition_transition` is no longer added to the
   turbulent SNGP and error model (11 datasets instead of 12).
 - **Seed and epoch selection.** `Seed = 2345`, and the error models keep the epoch with the lowest 200-epoch moving
@@ -515,9 +522,8 @@ were trained on the training data in the datasets' global-x frame and are the mo
   recipes on the reference baselines perform like the reference models (comparison in
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), section 12).
 - The reference models were trained without seeds, so their exact splits cannot be reproduced.
-- The laminar error model was trained on the laminar A-airfoil files up to n1/δ = 1 (`down0p005_up1`, the
-  "UPY1" in its name), which `error/error_lamturb.toml` uses. The laminar SNGP was trained on the narrower
-  `down0p02_up0p8` files (`sngp/sngp_lamturb.toml`).
+- The reference laminar error model was trained on laminar A-airfoil data up to n1/δ = 1 ("UPY1" in its name), and
+  the reference laminar SNGP on a narrower extraction, n1/δ from 0.02 to 0.8 ("UPY0p8").
 
 ### Where new models go
 
@@ -559,7 +565,7 @@ installation is needed for them. The scripts of this repository do not need LaTe
 | `src/trainer.py` | Checkpoints also store `train_index` / `valid_index` (int64 tensors). |
 | `src/README.md` | New section listing the changes to `src/`. |
 | `train_wm_proposal.py` | Raises `RuntimeError` instead of a string. Optional `[general] Seed`. |
-| `wall_model_cases.py` | Additional dataset keys (A-airfoil full 2D fields and their laminar sets, NASA hump regions, a-posteriori LES sets, ...). Keys whose files are not included are listed at the top of the file. |
+| `wall_model_cases.py` | Additional dataset keys (A-airfoil 2M full-2D-field sets, NASA hump regions, a-posteriori LES sets, ...). Keys whose files are not included are listed at the top of the file. |
 | `plot_utils.py`, `src/plot_utils.py`, `src/visualization.py` | No longer load a personal matplotlib style file. |
 | `test_model.py`, `test_model_summary_table.py`, `src/wall_model.py` | Create their output folders when needed. The summary table keeps dots in the checkpoint name and accepts a model subfolder (e.g. `baseline/<checkpoint>.pth`). |
 | `requirements.txt` | New: the pinned Python 3.11 environment. |

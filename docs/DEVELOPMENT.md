@@ -31,7 +31,7 @@ Contents:
 | notebook fork, "BFM_WM" | [github.com/imranhayat29/BFM_WM](https://github.com/imranhayat29/BFM_WM), branch `wip-bfm-error-model`, remote `fork`; a local clone (treat as read-only) | The owner's fork that added the error model, the SNGP and the blended correction, driven by Jupyter notebooks (`src_err/*.py` helpers, notebooks at the top level) |
 | BFM_WM_v2 (this repo) | [github.com/imranhayat29/BFM_WM_v2](https://github.com/imranhayat29/BFM_WM_v2), branch `v2`, remote `origin`; until 2026-11-08 branch `v2` of the notebook fork ([1.3](#13-git-layout-of-this-repository)) | Clone of upstream plus a script/TOML refactor of the notebook fork |
 | expert script | `BFM_WM/test_expert_model.py`; a standalone copy (BFM_WM_expert) | Earlier inference-only script of the blended model (argparse, `--gating-reference`); a reference for the test scripts' `summary.json` |
-| data generation | [github.com/yuenongling/WM_data_creation](https://github.com/yuenongling/WM_data_creation) | Creates the HDF5 datasets; the place to regenerate data in another frame (see [9.3](#93-remaining-difference-the-input-sign-frame)) |
+| data generation | [github.com/yuenongling/WM_data_creation](https://github.com/yuenongling/WM_data_creation) | Creates the HDF5 datasets; the place to regenerate data in another frame (see [9.3](#93-remaining-difference-the-input-sign-frame)): the owner's local branch `u2-positive-frame` selects the frame of every writer with `WM_INPUT_FRAME` (`global` by default, or `u2`) |
 | CharLES BFMv2 | private local git repository | LES solver that deploys the exported models |
 
 The owner's machine-specific locations (local clones, CharLES, the full decision log, the shared venv, the lam-turb
@@ -95,7 +95,7 @@ a-posteriori class import, ...) were not ported. To read a notebook as a script:
 |---|---|---|
 | `src/` changes: `flow_type` exposure in `load_data()`, exact inverse of the signed log1p in near-wall plots, default `downy` 0.0, no `u1 > 0` mask in near-wall mode, the `upy` in the filter message | `src/wall_model.py`, `src/data_handler.py` | Ported unchanged (D5) |
 | `plot_utils.py` guard for the missing personal style file | `plot_utils.py` | v2 never loads the style file |
-| All dataset keys added in the fork (A-airfoil full-2D fields and region splits, `hump_*` regions, `transition_JHU`/`ph_B` full-2D fields, `aposteriori_*`) | `wall_model_cases.py` | Identical to the fork's file plus a comment block and the three `down0p005_up1_laminar_*` keys (new in v2) |
+| All dataset keys added in the fork (A-airfoil full-2D fields and region splits, `hump_*` regions, `transition_JHU`/`ph_B` full-2D fields, `aposteriori_*`) | `wall_model_cases.py` | Identical to the fork's file plus a comment block and the three `down0p005_up1_laminar_*` keys (new in v2); since 2026-11-09 the A-airfoil full-2D-field keys are the 4 of the consolidated set ([5.4](#54-consolidated-a-airfoil-set)) |
 | `src_err/SNGP.py`, `error_model_functs.py`, `conditional_correction.py`, `select_by_x_wallnormal.py`, `pdf_utils.py`, `plot_err_utils.py`, `error_data_handler.py` | `src_err/sngp.py`, `error_model.py`, `gating.py`, `selection.py`, `plotting.py`, `data.py` | Rewritten, see [3.1](#31-fork-modules-to-v2-modules) |
 | Export scripts `export_sngp_to_npz.py`, `export_sngp_to_cuda_datafiles.py`, `export_error_model_to_npz.py`, `export_error_model_to_cuda_datafiles.py`, `export_baseline_to_cude_datafiles.py`, `convert_to_cuda.py` | `tools/` (`convert_to_cuda.py` at the root) | Copied from the fork's top level; CLIs, defaults and output formats unchanged; file-name typo `cude` fixed. Adaptations (listed in each header): the baseline exporter inserts the repo root into `sys.path` (for `convert_to_cuda` and `src.wall_model`) and creates the output directories; the two TensorFlow readers `setdefault` `TF_USE_LEGACY_KERAS=1` before TensorFlow is imported; example usage updated to `tools/` |
 | Data files | `data/` | See [section 5](#5-data-provenance) |
@@ -338,27 +338,33 @@ IDs refer to the decision log's bug list.
 
 ## 5. Data provenance
 
-`data/` holds the **training data** and the **lam-turb test set** (git-lfs; all 144 upstream LFS files plus the additions
-below, about 930 MB pulled from upstream). Differences from upstream:
+`data/` holds the **training data** and the **lam-turb test set** (git-lfs; 143 of the 144 upstream LFS files plus the
+additions below, about 930 MB pulled from upstream). Differences from upstream:
 
 | File | Source | Change | Why |
 |---|---|---|---|
 | `FS_{ZPG,APG,FPG}_data.h5` | fork's local, uncommitted versions (dated 2026-04-13) | replaced; about 5x more points (`FS_ZPG`: 1.94 MB → 9.32 MB) | the versions the laminar reference baseline was trained on; FS_* are classes of the turbulent SNGP and part of the turbulent error-model data too. The turbulent reference baseline was trained on older upstream files ([5.3](#53-training-data-of-the-turbulent-reference-baseline)) |
 | `curved_TBL_{APG,FPG}_data.h5` | fork's local versions | replaced; numerically identical, case names `curved_BL_APG`/`curved_BL_FPG` instead of `curved_BL` | the SNGP needs two distinct classes |
-| `aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_{ZPG,APG,FPG}.h5` | fork, untracked | added | additional data of the laminar SNGP (n1/δ 0.02-0.8, `kt_km` column) |
-| `aairfoil_2M_full2Dfield_down0p005_up1_laminar_{ZPG,APG,FPG}.h5` | fork, untracked (dated 2026-04-14) | added (review decision, 2026-10-25) | additional data of the laminar error model (n1/δ 0.005-1); the reference "UPY1" model's statistics match them |
+| `aairfoil_2M_full2Dfield_down0_up1_laminar_{ZPG,APG,FPG}.h5`, `aairfoil_2M_full2Dfield_down0_up1_turbulent.h5` | WM_data_creation `airfoil_Tamaki/` | added 2026-11-09 (consolidated A-airfoil set, [5.4](#54-consolidated-a-airfoil-set)); they replace the fork's laminar region files and the lam-turb test file of the rows below | laminar zones: additional data of the laminar SNGP and error model of the training TOMLs; all four: the lam-turb test set ([5.2](#52-lam-turb-test-set)) |
+| `aairfoil_2M_full2Dfield_down0p02_up0p8_laminar_{ZPG,APG,FPG}.h5` | fork, untracked | added; removed 2026-11-09 | additional data of the laminar reference SNGP (n1/δ 0.02-0.8, `kt_km` column) |
+| `aairfoil_2M_full2Dfield_down0p005_up1_laminar_{ZPG,APG,FPG}.h5` | fork, untracked (dated 2026-04-14) | added (review decision, 2026-10-25); removed 2026-11-09 | additional data of the laminar error model of the training TOMLs until 2026-11-09 (n1/δ 0.005-1); the reference "UPY1" model's statistics match them |
 | `gaussian_2M_data_{MAPG,FPG}.h5` | **upstream** | unchanged | the fork's local copies are corrupted ([5.1](#51-corrupted-gaussian-copies-in-the-fork)) |
-| `aairfoil_2M_full2Dfield_down0_up1.h5` | fork, untracked | added 2026-10-26 (owner's choice) | lam-turb test set ([5.2](#52-lam-turb-test-set)) |
+| `aairfoil_2M_full2Dfield_down0_up1.h5` | fork, untracked | added 2026-10-26 (owner's choice); removed 2026-11-09 | lam-turb test set until 2026-11-09 ([5.2](#52-lam-turb-test-set)) |
+| `airfoil_2M_data.h5` | upstream | removed 2026-11-09 | used by no script; an older extraction of the station-based A-airfoil set `aairfoil_2M_data.h5` (same ν, 98 of its 101 stations shared) |
 
 - `hump_*` regions are upstream files.
-- Candidate generators of the A-airfoil region files in the fork: `split_aairfoil_2M_by_region_generateFull2D.py`,
-  `split_dataset_by_up_region.py` (not verified which produced the shipped files).
+- The A-airfoil full-2D-field files come from WM_data_creation (the owner's local branch `u2-positive-frame`):
+  `airfoil_Tamaki/split_aairfoil_2M_by_region_generateFull2D.py` and `split_dataset_by_up_region.py`, copies of the
+  fork's scripts. With the windows and ZPG bands of the fork's files they reproduce those files exactly
+  ([5.4](#54-consolidated-a-airfoil-set)).
 - Not included (D2/D7): the reference C_f/geometry files `BFM_WM/data/Gray_x_vs_Cf.csv` (Gaussian-bump C_f),
   `WM_data_creation/airfoil_Tamaki/2M/surface_data.txt` (A-airfoil x/c, C_f; LT-NB's truth) and
   `BFM_WM/tmp/aairfoil-coords.txt` (airfoil geometry). v2 uses the dataset truth instead.
-- `wall_model_cases.py` registers 78 keys whose files are not in `data/` (`aposteriori_*`, `aairfoil_10M*`, the other
-  `aairfoil_2M_full2Dfield*` and `aairfoil_2M_{laminar,transition,turbulent}`, `transition_JHU_full2Dfield*`,
-  `ph_B_full2Dfield*`); their files are in `BFM_WM/data/`.
+- `wall_model_cases.py` registers 42 keys whose files are not in `data/` (34 `aposteriori_*`,
+  `aairfoil_2M_{laminar,transition,turbulent}`, 4 `transition_JHU_full2Dfield*`, `ph_B_full2Dfield_down0_up1`); their
+  files are in `BFM_WM/data/`. Until 2026-11-09 it also registered 43 `aairfoil_{2,10}M_full2Dfield*` keys (full
+  fields, region splits, the `down0p02_up0p8`, `down0_up1`, C_f-filtered `cfgauss` and `down0p005_up1` variants);
+  they were replaced by the 4 keys of the consolidated set.
 
 ### 5.1 Corrupted gaussian copies in the fork
 
@@ -371,10 +377,15 @@ mean near 955 instead of about 990 (reference 993.39) and an error mean near 2.8
 
 ### 5.2 Lam-turb test set
 
-`aairfoil_2M_full2Dfield_down0_up1.h5` (145 MB, git-lfs since 2026-10-26): full 2D-field extraction of the A-airfoil
-at Re = 2M (wall-normal profiles from leading to trailing edge, x/c in [0, 1.01], `kt_km` column), made with the
-WM_data_creation scripts. It is the fork's untracked file of the same name (md5 `299f5084…`), and the key was already
-in the registry. Its target is the raw LES u_τ.
+Since 2026-11-09: the four files of the consolidated A-airfoil set ([5.4](#54-consolidated-a-airfoil-set)), the
+turbulent region and the three pressure-gradient zones of the laminar region. Together they hold exactly the points of
+the previous test file (557 479 points; with `Stride = 2` per file the subsample differs slightly from that of the
+single file).
+
+2026-10-26 to 2026-11-09: `aairfoil_2M_full2Dfield_down0_up1.h5` (145 MB, git-lfs): full 2D-field extraction of the
+A-airfoil at Re = 2M (wall-normal profiles from leading to trailing edge, x/c in [0, 1.01], `kt_km` column), made with
+the WM_data_creation scripts. It is the fork's untracked file of the same name (md5 `299f5084…`), and the key was
+already in the registry. Its target is the raw LES u_τ.
 
 Until 2026-10-26 the test set was the fork's `aairfoil_2M_full2Dfield_down0_up1_cfgauss_w30_tr3_xalltoall.h5`
 (untracked, used through a git-ignored local link): the same 557 479 points and inputs, but with u_τ Gaussian-filtered
@@ -414,6 +425,35 @@ in upstream's state of 2025-12-05 to 12-08 (commit `a856dc6`); the other seven c
   files it saw (neither published December version fits all four) and whether it was the best of several runs.
   Records: git-ignored `results/u2frame/report/dec2025/` (main checkout) and the model `gfc_dec2025` in the
   `BFM_WM_v2_gfctrl` worktree.
+
+### 5.4 Consolidated A-airfoil set
+
+On 2026-11-09 one set of A-airfoil 2M full-2D-field files, in the global-x frame, replaced the three variants (laminar
+SNGP data, laminar error-model data, lam-turb test set). Branch `u2f` holds the same set in the u2-positive frame.
+
+- **Generation.** WM_data_creation, the owner's local branch `u2-positive-frame` (commits `3105d2a`, `5af7387`),
+  `airfoil_Tamaki/` (its README describes the workflow), with `WM_INPUT_FRAME` unset (global frame):
+  - `split_aairfoil_2M_by_region_generateFull2D.py --down-frac 0 --up-frac 1` computes every suction-side station of
+    the LES statistics, n1/δ99 in (0, 1], and splits the stations by x/c into laminar (≤ 0.123) and turbulent
+    (> 0.123); there is no transition region;
+  - `split_dataset_by_up_region.py` splits the laminar file point by point on `up_y_over_nu` with the ZPG band ±0.2.
+  - The raw LES files are in `airfoil_Tamaki/2M/`; ν = 1/2.0e6, as for `aairfoil_2M_data.h5` (the database gives
+    Re_c = 2.1e6).
+- **Contents.** 557 479 points: turbulent 519 043; laminar 38 436, of which FPG 1 681, ZPG 1 343 and APG 35 412. The
+  laminar plus turbulent files equal the full field exactly, and the three zones the laminar file. 30 545 points have
+  u2 < 0 (2 017 of them laminar); they stay in the global frame.
+- **PG zones in the global frame** (owner's decision): a zone follows the sign of the station's wall pressure gradient,
+  as in the fork's files, so every zone file holds only its own sign of up. In the u2-positive frame (branch `u2f`),
+  1 720 laminar reversed-flow points are FPG instead of APG (FPG 3 401, APG 33 692).
+- **Checks.** With the fork's windows and bands, the two scripts reproduce the fork's files exactly (every key, value
+  and storage format): the `down0_up1` full field, the `down0p02_up0p8` laminar zones at ±0.2 and the `down0p005_up1`
+  laminar zones at ±1, i.e. the seven A-airfoil files of `81234fa`. With `WM_INPUT_FRAME=u2` they give the four files
+  of branch `u2f`, and `to_u2_positive_frame` of the global full, laminar and turbulent files gives the u2-frame ones.
+- **Replaced files.** The 7 old full-2D-field files and the unused `airfoil_2M_data.h5` are in the commits before
+  2026-11-09.
+- **Windows in training.** With the n1/δ window [0.0025, 0.99] of the laminar models
+  ([12.3](#123-training-settings-since-2026-11-08-gf)), the zones keep FPG 1 680, ZPG 1 342 and APG 35 270 points.
+  The turbulent file is test data only.
 
 
 ---
@@ -916,6 +956,7 @@ with settings taken over from the u2-frame retraining (branch `u2f`):
 | n1/δ window, additional data of the turbulent SNGP and error model | [0, 0.15] | [0.0025, 0.15] |
 | n1/δ window, laminar baseline | none (`upy` 1.25: every Falkner-Skan point, up to 1.25) | [0.0025, 0.99] |
 | n1/δ window, additional data of the laminar SNGP / error model | [0, 0.8] / none (`upy` 1.0) | [0.0025, 0.99] |
+| A-airfoil data of the laminar SNGP / error model | the `down0p02_up0p8` / `down0p005_up1` zones (bands ±0.2 / ±1) | the zones of the consolidated set, ±0.2, since 2026-11-09 ([5.4](#54-consolidated-a-airfoil-set)) |
 | Additional data of the turbulent SNGP and error model | 12 sets, including `Transition_transition` | 11 sets, without it |
 | Seed | 1234 | 2345 |
 | Error-model epoch | lowest `val_loss` | lowest 200-epoch moving average of `val_loss` (`SmoothEpochs = 200`) |
@@ -923,7 +964,8 @@ with settings taken over from the u2-frame retraining (branch `u2f`):
 
 - `upy = 0.99` because both loaders treat `upy` ≥ 1 as no upper cut, and the baseline trainer then also ignores
   `downy`. The Falkner-Skan sets have no points with 0 < n1/δ < ~0.0104, so the laminar lower bound changes nothing
-  there; the laminar A-airfoil files keep their extractions (n1/δ 0.02-0.8 and 0.005-1) until they are regenerated.
+  there. The laminar A-airfoil data are the consolidated set since 2026-11-09 (the 81234fa extractions, n1/δ 0.02-0.8
+  and 0.005-1, until then).
 - Seed 2345 gave the best of three global-frame retrainings with the reference recipes (all 80 benchmark datasets,
   blended mean |e| 8.94 %; reference models 8.82 %, the other seeds 9.83 % and 9.87 %).
 - In the u2-frame retraining, dropping `Transition_transition` made the nine transition cases less accurate (blended

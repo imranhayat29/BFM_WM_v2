@@ -110,6 +110,11 @@ SHIPPED_LAM_SNGP = "sngp/sngp_model_Baseline_selftrained_lam_Add_ExpertExtFlowUP
 SHIPPED_TURB_ERROR = "error/error_model_Baseline_cleanedupNew_Add_ExpertExtFlow_CustomLayers_N60xL15_wVal_ep3811"
 SHIPPED_LAM_ERROR = "error/error_model_Baseline_selftrained_lam_Add_ExpertExtFlowUPY1_CustomLayers_N60xL6_wVal_ep4000"
 
+# Default test data of test_lamturb.py: the A-airfoil 2M full 2D field, as its turbulent region and the
+# pressure-gradient zones of its laminar region (together the full field)
+LAMTURB_TEST_DATASETS = ["aairfoil_2M_full2Dfield_down0_up1_turbulent", "aairfoil_2M_full2Dfield_down0_up1_laminar_ZPG",
+                         "aairfoil_2M_full2Dfield_down0_up1_laminar_APG", "aairfoil_2M_full2Dfield_down0_up1_laminar_FPG"]
+
 FIGURE_FORMATS = ["png", "pdf", "svg", "jpg", "eps"]
 # PDF estimators of src_err/plotting.py ('hist' is an alias of 'histogram')
 PDF_METHODS = ["kde", "histogram", "hist", "both"]
@@ -318,7 +323,7 @@ def test_schema(variant: str) -> Dict[str, Any]:
         },
         "data": {
             "Datasets": Key("list[str]",
-                            ["aairfoil_2M_full2Dfield_down0_up1"] if lamturb else
+                            LAMTURB_TEST_DATASETS if lamturb else
                             ["gaussian_2M_APG", "gaussian_2M_FPG", "gaussian_2M_SEP", "gaussian_2M_MAPG"],
                             check=lambda v: None if v else "must not be empty"),
             "upy": Key("float", 1.0 if lamturb else 0.15, check=_positive),
